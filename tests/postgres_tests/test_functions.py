@@ -3,6 +3,7 @@ from datetime import datetime
 from time import sleep
 
 from django.contrib.postgres.functions import RandomUUID, TransactionNow
+from django.utils.deprecation import RemovedInDjango70Warning
 
 from . import PostgreSQLTestCase
 from .models import NowTestModel, UUIDTestModel
@@ -29,11 +30,7 @@ class TestTransactionNow(PostgreSQLTestCase):
 
 
 class TestRandomUUID(PostgreSQLTestCase):
-    def test_random_uuid(self):
-        m1 = UUIDTestModel.objects.create()
-        m2 = UUIDTestModel.objects.create()
-        UUIDTestModel.objects.update(uuid=RandomUUID())
-        m1.refresh_from_db()
-        m2.refresh_from_db()
-        self.assertIsInstance(m1.uuid, uuid.UUID)
-        self.assertNotEqual(m1.uuid, m2.uuid)
+    def test_deprecated(self):
+        msg = "Use django.db.models.functions.UUID4 instead."
+        with self.assertWarnsMessage(RemovedInDjango70Warning, msg):
+            RandomUUID()
