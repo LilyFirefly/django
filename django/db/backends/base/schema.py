@@ -1840,9 +1840,9 @@ class BaseDatabaseSchemaEditor:
         if deferrable is None:
             return ""
         if deferrable == Deferrable.DEFERRED:
-            return " DEFERRABLE INITIALLY DEFERRED"
+            return self.connection.ops.deferrable_sql()
         if deferrable == Deferrable.IMMEDIATE:
-            return " DEFERRABLE INITIALLY IMMEDIATE"
+            return self.connection.ops.immediate_sql()
 
     def _unique_index_nulls_distinct_sql(self, nulls_distinct):
         if nulls_distinct is False:

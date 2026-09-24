@@ -150,6 +150,9 @@ class DatabaseOperations(BaseDatabaseOperations):
     def deferrable_sql(self):
         return " DEFERRABLE INITIALLY DEFERRED"
 
+    def immediate_sql(self):
+        return " DEFERRABLE INITIALLY IMMEDIATE"
+
     def bulk_insert_sql(self, fields, placeholder_rows):
         if isinstance(placeholder_rows, InsertUnnest):
             return f"SELECT * FROM {placeholder_rows}"
