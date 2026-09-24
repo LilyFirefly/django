@@ -1,4 +1,5 @@
 import datetime
+import unittest
 from copy import deepcopy
 
 from django.core.exceptions import (
@@ -6,15 +7,16 @@ from django.core.exceptions import (
     FieldFetchBlocked,
     MultipleObjectsReturned,
 )
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, connection, models, transaction
 from django.db.models import FETCH_PEERS, FETCH_RAISE
-from django.test import TestCase
+from django.test import TestCase, TransactionTestCase
 from django.utils.translation import gettext_lazy
 
 from .models import (
     Article,
     Category,
     Child,
+    ChildImmediateParent,
     ChildNullableParent,
     ChildStringPrimaryKeyParent,
     City,
@@ -1015,3 +1017,23 @@ class ManyToOneTests(TestCase):
             self.assertEqual(a1.reporter, self.r)
         with self.assertNumQueries(0):
             self.assertEqual(a2.reporter, self.r)
+
+
+class ManyToOneTransactionTests(TransactionTestCase):
+    available_apps = ["many_to_one"]
+
+    def test_immediate_fk_raises_integrity_error_inside_transaction(self):
+        with transaction.atomic():
+            with self.assertRaises(IntegrityError):
+                ChildImmediateParent.objects.create(parent_id=-1)
+
+    @unittest.skipUnless(
+        connection.features.can_defer_constraint_checks,
+        reason="Tests a DEFERRED constraint",
+    )
+    def test_deferred_fk_raises_integrity_error_when_transaction_exits(self):
+        trans = transaction.atomic()
+        trans.__enter__()
+        Child.objects.create(parent_id=-1)
+        with self.assertRaises(IntegrityError):
+            trans.__exit__(None, None, None)

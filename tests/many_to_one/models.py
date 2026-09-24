@@ -5,6 +5,7 @@ To define a many-to-one relationship, use ``ForeignKey()``.
 """
 
 from django.db import models
+from django.db.models.constraints import Deferrable
 
 
 class Reporter(models.Model):
@@ -90,6 +91,12 @@ class ChildNullableParent(models.Model):
 
 class ChildStringPrimaryKeyParent(models.Model):
     parent = models.ForeignKey(ParentStringPrimaryKey, on_delete=models.CASCADE)
+
+
+class ChildImmediateParent(models.Model):
+    parent = models.ForeignKey(
+        Parent, models.CASCADE, db_constraint=Deferrable.IMMEDIATE
+    )
 
 
 class ToFieldChild(models.Model):
