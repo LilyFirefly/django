@@ -8,6 +8,7 @@ objects, and a ``Publication`` has multiple ``Article`` objects.
 """
 
 from django.db import models
+from django.db.models.constraints import Deferrable
 
 
 class Publication(models.Model):
@@ -90,3 +91,10 @@ class NullableTargetArticle(models.Model):
 class NullablePublicationThrough(models.Model):
     article = models.ForeignKey(NullableTargetArticle, models.CASCADE)
     publication = models.ForeignKey(Publication, models.CASCADE, null=True)
+
+
+class ImmediateArticle(models.Model):
+    headline = models.CharField(max_length=100)
+    publications = models.ManyToManyField(
+        Publication, name="publications", db_constraint=Deferrable.IMMEDIATE
+    )

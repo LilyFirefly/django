@@ -1,11 +1,18 @@
+import unittest
 from unittest import mock
 
-from django.db import connection, transaction
+from django.db import IntegrityError, connection, transaction
 from django.db.models import FETCH_PEERS
-from django.test import TestCase, skipIfDBFeature, skipUnlessDBFeature
+from django.test import (
+    TestCase,
+    TransactionTestCase,
+    skipIfDBFeature,
+    skipUnlessDBFeature,
+)
 
 from .models import (
     Article,
+    ImmediateArticle,
     InheritedArticleA,
     InheritedArticleB,
     NullablePublicationThrough,
@@ -699,3 +706,33 @@ class ManyToManyQueryTests(TestCase):
             article.publications.count()
         with self.assertNumQueries(0):
             article.publications.exists()
+
+
+class ManyToManyTransactionTests(TransactionTestCase):
+    available_apps = ["many_to_many"]
+
+    def test_immediate_fk_raises_integrity_error_inside_transaction(self):
+        article = ImmediateArticle.objects.create(
+            headline="Django lets you build web apps easily"
+        )
+
+        with transaction.atomic():
+            with self.assertRaises(IntegrityError):
+                ImmediateArticle.publications.through.objects.create(
+                    immediatearticle=article, publication_id=-1
+                )
+
+    @unittest.skipUnless(
+        connection.features.can_defer_constraint_checks,
+        reason="Tests a DEFERRED constraint",
+    )
+    def test_deferred_fk_raises_integrity_error_when_transaction_exits(self):
+        article = Article.objects.create(
+            headline="Django lets you build web apps easily"
+        )
+
+        trans = transaction.atomic()
+        trans.__enter__()
+        Article.publications.through.objects.create(article=article, publication_id=-1)
+        with self.assertRaises(IntegrityError):
+            trans.__exit__(None, None, None)
