@@ -289,6 +289,9 @@ END;
     def deferrable_sql(self):
         return " DEFERRABLE INITIALLY DEFERRED"
 
+    def immediate_sql(self):
+        return " DEFERRABLE INITIALLY IMMEDIATE"
+
     def returning_columns(self, fields):
         if not fields:
             return "", ()

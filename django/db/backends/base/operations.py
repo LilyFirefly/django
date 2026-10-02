@@ -211,6 +211,13 @@ class BaseDatabaseOperations:
         """
         return ""
 
+    def immediate_sql(self):
+        """
+        Return the SQL to make a constraint "initially immediate" during a
+        CREATE TABLE statement.
+        """
+        return ""
+
     def distinct_sql(self, fields, params):
         """
         Return an SQL DISTINCT clause which removes duplicate rows from the

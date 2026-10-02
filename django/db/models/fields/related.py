@@ -10,6 +10,7 @@ from django.db import connection, connections, router
 from django.db.backends import utils
 from django.db.models import NOT_PROVIDED, Q
 from django.db.models.constants import LOOKUP_SEP
+from django.db.models.constraints import Deferrable
 from django.db.models.deletion import (
     CASCADE,
     DB_CASCADE,
@@ -1204,6 +1205,14 @@ class ForeignKey(ForeignObject):
         ):
             kwargs["to_field"] = self.remote_field.field_name
         return name, path, args, kwargs
+
+    @property
+    def deferrable(self):
+        if self.db_constraint is True:
+            return Deferrable.DEFERRED
+        if self.db_constraint is False:
+            return None
+        return self.db_constraint
 
     def to_python(self, value):
         return self.target_field.to_python(value)
