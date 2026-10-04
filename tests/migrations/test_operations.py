@@ -1685,6 +1685,128 @@ class OperationTests(OperationTestBase):
         self.assertEqual(bytes(pony.digits), b"42")
         self.assertEqual(bytes(pony.quotes), b'"\'"')
 
+    def test_add_deferred_fk(self):
+        project_state = self.set_up_test_model("test_addeffk", second_model=True)
+
+        new_state = self.apply_operations(
+            "test_addeffk",
+            project_state,
+            [
+                migrations.AddField(
+                    "Pony",
+                    "stable",
+                    models.ForeignKey(
+                        "test_addeffk.Stable",
+                        models.DB_CASCADE,
+                        db_constraint=models.Deferrable.DEFERRED,
+                    ),
+                ),
+            ],
+        )
+
+        Pony = new_state.apps.get_model("test_addeffk", "Pony")
+        transaction = atomic()
+        transaction.__enter__()
+        try:
+            Pony.objects.create(weight=42, stable_id=-1)
+        finally:
+            with self.assertRaises(IntegrityError):
+                transaction.__exit__(None, None, None)
+
+    def test_add_immediate_fk(self):
+        project_state = self.set_up_test_model("test_adimmfk", second_model=True)
+
+        new_state = self.apply_operations(
+            "test_adimmfk",
+            project_state,
+            [
+                migrations.AddField(
+                    "Pony",
+                    "stable",
+                    models.ForeignKey(
+                        "test_adimmfk.Stable",
+                        models.DB_CASCADE,
+                        db_constraint=models.Deferrable.IMMEDIATE,
+                    ),
+                ),
+            ],
+        )
+
+        Pony = new_state.apps.get_model("test_adimmfk", "Pony")
+        with atomic():
+            with self.assertRaises(IntegrityError):
+                Pony.objects.create(weight=42, stable_id=-1)
+
+    def test_alter_deferred_fk_to_immediate(self):
+        project_state = self.set_up_test_model("test_aldeffk", second_model=True)
+
+        new_state = self.apply_operations(
+            "test_aldeffk",
+            project_state,
+            [
+                migrations.AddField(
+                    "Pony",
+                    "stable",
+                    models.ForeignKey(
+                        "test_aldeffk.Stable",
+                        models.DB_CASCADE,
+                        db_constraint=models.Deferrable.DEFERRED,
+                    ),
+                ),
+                migrations.AlterField(
+                    "Pony",
+                    "stable",
+                    models.ForeignKey(
+                        "test_aldeffk.Stable",
+                        models.DB_CASCADE,
+                        db_constraint=models.Deferrable.IMMEDIATE,
+                    ),
+                ),
+            ],
+        )
+
+        Pony = new_state.apps.get_model("test_aldeffk", "Pony")
+        with atomic():
+            with self.assertRaises(IntegrityError):
+                Pony.objects.create(weight=42, stable_id=-1)
+
+    def test_alter_immediate_fk_to_deferred(self):
+        project_state = self.set_up_test_model("test_alimmfk", second_model=True)
+
+        new_state = self.apply_operations(
+            "test_alimmfk",
+            project_state,
+            [
+                migrations.AddField(
+                    "Pony",
+                    "stable",
+                    models.ForeignKey(
+                        "test_alimmfk.Stable",
+                        models.DB_CASCADE,
+                        db_constraint=models.Deferrable.IMMEDIATE,
+                    ),
+                ),
+                migrations.AlterField(
+                    "Pony",
+                    "stable",
+                    models.ForeignKey(
+                        "test_alimmfk.Stable",
+                        models.DB_CASCADE,
+                        db_constraint=models.Deferrable.DEFERRED,
+                    ),
+                ),
+            ],
+        )
+
+        Pony = new_state.apps.get_model("test_alimmfk", "Pony")
+        transaction = atomic()
+        transaction.__enter__()
+        try:
+            Pony.objects.create(weight=42, stable_id=-1)
+        finally:
+            with self.assertRaises(IntegrityError):
+                transaction.__exit__(None, None, None)
+
     def test_column_name_quoting(self):
         """
         Column names that are SQL keywords shouldn't cause problems when used

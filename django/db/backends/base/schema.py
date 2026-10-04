@@ -248,6 +248,7 @@ class BaseDatabaseSchemaEditor:
                         "to_table": self.quote_name(to_table),
                         "to_column": self.quote_name(to_column),
                         "on_delete_db": self._create_on_delete_sql(model, field),
+                        "deferrable": self._deferrable_constraint_sql(field.deferrable),
                     }
                 elif self.connection.features.supports_foreign_keys:
                     self.deferred_sql.append(
@@ -797,7 +798,7 @@ class BaseDatabaseSchemaEditor:
                     "column": self.quote_name(field.column),
                     "to_table": self.quote_name(to_table),
                     "to_column": self.quote_name(to_column),
-                    "deferrable": self.connection.ops.deferrable_sql(),
+                    "deferrable": self._deferrable_constraint_sql(field.deferrable),
                     "on_delete_db": self._create_on_delete_sql(model, field),
                 }
             # Otherwise, add FK constraints later.
@@ -1808,7 +1809,6 @@ class BaseDatabaseSchemaEditor:
             [field.target_field.column],
             self.quote_name,
         )
-        deferrable = self.connection.ops.deferrable_sql()
         return Statement(
             self.sql_create_fk,
             table=table,
@@ -1816,7 +1816,7 @@ class BaseDatabaseSchemaEditor:
             column=column,
             to_table=to_table,
             to_column=to_column,
-            deferrable=deferrable,
+            deferrable=self._deferrable_constraint_sql(field.deferrable),
             on_delete_db=self._create_on_delete_sql(model, field),
         )
 
@@ -1840,9 +1840,9 @@ class BaseDatabaseSchemaEditor:
         if deferrable is None:
             return ""
         if deferrable == Deferrable.DEFERRED:
-            return " DEFERRABLE INITIALLY DEFERRED"
+            return self.connection.ops.deferrable_sql()
         if deferrable == Deferrable.IMMEDIATE:
-            return " DEFERRABLE INITIALLY IMMEDIATE"
+            return self.connection.ops.immediate_sql()
 
     def _unique_index_nulls_distinct_sql(self, nulls_distinct):
         if nulls_distinct is False:

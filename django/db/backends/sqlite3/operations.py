@@ -412,3 +412,9 @@ class DatabaseOperations(BaseDatabaseOperations):
 
     def format_json_path_numeric_index(self, num):
         return "[#%s]" % num if num < 0 else super().format_json_path_numeric_index(num)
+
+    def deferrable_sql(self):
+        return " DEFERRABLE INITIALLY DEFERRED"
+
+    def immediate_sql(self):
+        return " DEFERRABLE INITIALLY IMMEDIATE"
